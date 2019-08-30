@@ -45,8 +45,8 @@ strApplicationSql = '''
                 AND ca.updated_on::DATE > ( CURRENT_DATE - 60 )
                 AND ca.application_status_id NOT IN ( 5, 6 ) ) AS temp_application
             '''
-objDataFrameApplication = CJdbcDataFrame.CJdbcDataFrame(objSparkSession.getSession(), strApplicationSql)
-applicationDataFrame = objDataFrameApplication.getDataFrame()
+objDataFrameApplication = CJdbcDataFrame.CJdbcDataFrame(objSparkSession.getSession())
+applicationDataFrame = objDataFrameApplication.loadDataFrame(strApplicationSql)
 
 strScheduledChargeSql = '''
                         ( SELECT
@@ -101,8 +101,7 @@ strScheduledChargeSql = '''
                         '''
 
 
-objDataScheduledCharge = CJdbcDataFrame.CJdbcDataFrame(objSparkSession.getSession(), strScheduledChargeSql)
-scheduledChargeDataFrame = objDataScheduledCharge.getDataFrame()
+scheduledChargeDataFrame = objDataFrameApplication.loadDataFrame(strScheduledChargeSql)
 
 
 joinDataFrame = scheduledChargeDataFrame.alias('sc').join( applicationDataFrame.alias('a'), ( applicationDataFrame.id == scheduledChargeDataFrame.application_id ) & ( applicationDataFrame.cid == scheduledChargeDataFrame.cid ) ).filter( F.col("executed_rent_date").between( F.col("charge_start_date"), F.col("charge_end_date") ) )
@@ -123,14 +122,38 @@ joinDataFrame = joinDataFrame.withColumn('executed_monthly_other_risk_premium',F
 joinDataFrame = joinDataFrame.withColumn('executed_monthly_other_special',F.when(( joinDataFrame.ar_trigger_type_id == 3 ) & ( joinDataFrame.ar_code_type_id != 2 ) & ( joinDataFrame.ar_origin_id == 6 ), joinDataFrame.charge_amount  ).otherwise(0) )
 joinDataFrame = joinDataFrame.withColumn('executed_monthly_other_total',F.when(( joinDataFrame.ar_trigger_type_id == 3 ) & ( joinDataFrame.ar_code_type_id != 2 ), joinDataFrame.charge_amount  ).otherwise(0) )
 
+joinDataFrame = joinDataFrame.withColumn('executed_one_time_deposit_base',F.when(( joinDataFrame.ar_trigger_type_id.isin({1,2}) ) & ( joinDataFrame.ar_code_type_id == 7 ) & ( joinDataFrame.ar_origin_id == 1 ),  joinDataFrame.charge_amount  ).otherwise(0) )
+joinDataFrame = joinDataFrame.withColumn('executed_one_time_deposit_amenity',F.when(( joinDataFrame.ar_trigger_type_id.isin({1,2}) ) & ( joinDataFrame.ar_code_type_id == 7 ) & ( joinDataFrame.ar_origin_id == 2  ), joinDataFrame.charge_amount  ).otherwise(0) )
+joinDataFrame = joinDataFrame.withColumn('executed_one_time_deposit_add_on',F.when(( joinDataFrame.ar_trigger_type_id.isin({1,2}) ) & ( joinDataFrame.ar_code_type_id == 7 ) & ( joinDataFrame.ar_origin_id == 4 ),  joinDataFrame.charge_amount  ).otherwise(0) )
+joinDataFrame = joinDataFrame.withColumn('executed_one_time_deposit_special',F.when(( joinDataFrame.ar_trigger_type_id.isin({1,2}) ) & ( joinDataFrame.ar_code_type_id == 7 ) & ( joinDataFrame.ar_origin_id == 6 ), joinDataFrame.charge_amount  ).otherwise(0) )
+joinDataFrame = joinDataFrame.withColumn('executed_one_time_deposit_risk_premium',F.when(( joinDataFrame.ar_trigger_type_id.isin({1,2}) ) & ( joinDataFrame.ar_code_type_id == 7 ) & ( joinDataFrame.ar_origin_id == 5 ), joinDataFrame.charge_amount  ).otherwise(0) )
+joinDataFrame = joinDataFrame.withColumn('executed_one_time_deposit_pet',F.when(( joinDataFrame.ar_trigger_type_id.isin({1,2}) ) & ( joinDataFrame.ar_code_type_id == 7 ) & ( joinDataFrame.ar_origin_id == 3 ), joinDataFrame.charge_amount  ).otherwise(0) )
+joinDataFrame = joinDataFrame.withColumn('executed_one_time_deposit_total',F.when(( joinDataFrame.ar_trigger_type_id.isin({1,2}) ) & ( joinDataFrame.ar_code_type_id == 7 ), joinDataFrame.charge_amount  ).otherwise(0) )
+
+joinDataFrame = joinDataFrame.withColumn('executed_one_time_application_base',F.when(( joinDataFrame.ar_trigger_type_id.isin({1,2} ) ) & ( joinDataFrame.ar_trigger_id.isin({ 102,103,104,105 } ) ) & ( joinDataFrame.ar_code_type_id == 3 ) & ( joinDataFrame.ar_origin_id == 1 ),  joinDataFrame.charge_amount  ).otherwise(0) )
+joinDataFrame = joinDataFrame.withColumn('executed_one_time_application_amenity',F.when(( joinDataFrame.ar_trigger_type_id.isin({1,2} ) ) & ( joinDataFrame.ar_trigger_id.isin({ 102,103,104,105 } ) ) & ( joinDataFrame.ar_code_type_id == 3 ) & ( joinDataFrame.ar_origin_id == 2 ),  joinDataFrame.charge_amount  ).otherwise(0) )
+joinDataFrame = joinDataFrame.withColumn('executed_one_time_application_add_on',F.when(( joinDataFrame.ar_trigger_type_id.isin({1,2} ) ) & ( joinDataFrame.ar_trigger_id.isin({ 102,103,104,105 } ) ) & ( joinDataFrame.ar_code_type_id == 3 ) & ( joinDataFrame.ar_origin_id == 4 ),  joinDataFrame.charge_amount  ).otherwise(0) )
+joinDataFrame = joinDataFrame.withColumn('executed_one_time_application_special',F.when(( joinDataFrame.ar_trigger_type_id.isin({1,2} ) ) & ( joinDataFrame.ar_trigger_id.isin({ 102,103,104,105 } ) ) & ( joinDataFrame.ar_code_type_id == 3 ) & ( joinDataFrame.ar_origin_id == 6 ),  joinDataFrame.charge_amount  ).otherwise(0) )
+joinDataFrame = joinDataFrame.withColumn('executed_one_time_application_risk_premium',F.when(( joinDataFrame.ar_trigger_type_id.isin({1,2} ) ) & ( joinDataFrame.ar_trigger_id.isin({ 102,103,104,105 } ) ) & ( joinDataFrame.ar_code_type_id == 3 ) & ( joinDataFrame.ar_origin_id == 5 ),  joinDataFrame.charge_amount  ).otherwise(0) )
+joinDataFrame = joinDataFrame.withColumn('executed_one_time_application_pet',F.when(( joinDataFrame.ar_trigger_type_id.isin({1,2} ) ) & ( joinDataFrame.ar_trigger_id.isin({ 102,103,104,105 } ) ) & ( joinDataFrame.ar_code_type_id == 3 ) & ( joinDataFrame.ar_origin_id == 3 ),  joinDataFrame.charge_amount  ).otherwise(0) )
+joinDataFrame = joinDataFrame.withColumn('executed_one_time_application_total',F.when(( joinDataFrame.ar_trigger_type_id.isin({1,2} ) ) & ( joinDataFrame.ar_trigger_id.isin({ 102,103,104,105 } ) ) & ( joinDataFrame.ar_code_type_id == 3 ),  joinDataFrame.charge_amount  ).otherwise(0) )
+
+joinDataFrame = joinDataFrame.withColumn('executed_one_time_other_amenity',F.when(( joinDataFrame.ar_trigger_type_id.isin({1,2} ) ) & ( joinDataFrame.ar_trigger_id.isin({ 102,103,104,105 } ) ) & ( joinDataFrame.ar_code_type_id == 3 ) & ( joinDataFrame.ar_origin_id == 2 ),  joinDataFrame.charge_amount  ).otherwise(0) )
+joinDataFrame = joinDataFrame.withColumn('executed_one_time_other_base',F.when(( joinDataFrame.ar_trigger_type_id.isin({1,2} ) ) & ( joinDataFrame.ar_trigger_id.isin({ 102,103,104,105 } ) ) & ( joinDataFrame.ar_code_type_id == 3 ) & ( joinDataFrame.ar_origin_id == 1 ),  joinDataFrame.charge_amount  ).otherwise(0) )
+joinDataFrame = joinDataFrame.withColumn('executed_one_time_other_add_on',F.when(( joinDataFrame.ar_trigger_type_id.isin({1,2} ) ) & ( joinDataFrame.ar_trigger_id.isin({ 102,103,104,105 } ) ) & ( joinDataFrame.ar_code_type_id == 3 ) & ( joinDataFrame.ar_origin_id == 4 ),  joinDataFrame.charge_amount  ).otherwise(0) )
+joinDataFrame = joinDataFrame.withColumn('executed_one_time_other_special',F.when(( joinDataFrame.ar_trigger_type_id.isin({1,2} ) ) & ( joinDataFrame.ar_trigger_id.isin({ 102,103,104,105 } ) ) & ( joinDataFrame.ar_code_type_id == 3 ) & ( joinDataFrame.ar_origin_id == 6 ),  joinDataFrame.charge_amount  ).otherwise(0) )
+joinDataFrame = joinDataFrame.withColumn('executed_one_time_other_risk_premium',F.when(( joinDataFrame.ar_trigger_type_id.isin({1,2} ) ) & ( joinDataFrame.ar_trigger_id.isin({ 102,103,104,105 } ) ) & ( joinDataFrame.ar_code_type_id == 3 ) & ( joinDataFrame.ar_origin_id == 5 ),  joinDataFrame.charge_amount  ).otherwise(0) )
+joinDataFrame = joinDataFrame.withColumn('executed_one_time_other_pet',F.when(( joinDataFrame.ar_trigger_type_id.isin({1,2} ) ) & ( joinDataFrame.ar_trigger_id.isin({ 102,103,104,105 } ) ) & ( joinDataFrame.ar_code_type_id == 3 ) & ( joinDataFrame.ar_origin_id == 3 ),  joinDataFrame.charge_amount  ).otherwise(0) )
+joinDataFrame = joinDataFrame.withColumn('executed_one_time_other_total',F.when(( joinDataFrame.ar_trigger_type_id.isin({1,2} ) ) & ( joinDataFrame.ar_trigger_id.isin({ 102,103,104,105 } ) ) & ( joinDataFrame.ar_code_type_id == 3 ),  joinDataFrame.charge_amount  ).otherwise(0) )
+
 
 joinDataFrame = joinDataFrame.groupBy("sc.cid","sc.lease_interval_id").agg(F.sum('executed_monthly_rent_base').alias('executed_monthly_rent_base'),
                                                                            F.sum('executed_monthly_rent_amenity').alias('executed_monthly_rent_amenity'),
                                                                            F.sum('executed_monthly_rent_pet').alias('executed_monthly_rent_pet'),
-                                                                           F.sum('executed_monthly_rent_add_on').alias('executed_monthly_rent_amenity'),
-                                                                           F.sum('executed_monthly_rent_risk_premium').alias('executed_monthly_rent_add_on'),
-                                                                           F.sum('executed_monthly_rent_special').alias('executed_monthly_rent_risk_premium'),
-                                                                           F.sum('executed_monthly_rent_total').alias('executed_monthly_rent_special'),
+                                                                           F.sum('executed_monthly_rent_add_on').alias('executed_monthly_rent_add_on'),
+                                                                           F.sum('executed_monthly_rent_risk_premium').alias('executed_monthly_rent_risk_premium'),
+                                                                           F.sum('executed_monthly_rent_special').alias('executed_monthly_rent_special'),
+                                                                           F.sum('executed_monthly_rent_total').alias('executed_monthly_rent_total'),
                                                                            F.sum('executed_monthly_other_base').alias('executed_monthly_other_base'),
                                                                            F.sum('executed_monthly_other_amenity').alias('executed_monthly_other_amenity'),
                                                                            F.sum('executed_monthly_other_pet').alias('executed_monthly_other_pet'),
@@ -138,7 +161,27 @@ joinDataFrame = joinDataFrame.groupBy("sc.cid","sc.lease_interval_id").agg(F.sum
                                                                            F.sum('executed_monthly_other_risk_premium').alias('executed_monthly_other_risk_premium'),
                                                                            F.sum('executed_monthly_other_special').alias('executed_monthly_other_special'),
                                                                            F.sum('executed_monthly_other_total').alias('executed_monthly_other_total'),
-
+                                                                           F.sum('executed_one_time_deposit_base').alias('executed_one_time_deposit_base'),
+                                                                           F.sum('executed_one_time_deposit_amenity').alias('executed_one_time_deposit_amenity'),
+                                                                           F.sum('executed_one_time_deposit_add_on').alias('executed_one_time_deposit_add_on'),
+                                                                           F.sum('executed_one_time_deposit_special').alias('executed_one_time_deposit_special'),
+                                                                           F.sum('executed_one_time_deposit_risk_premium').alias('executed_one_time_deposit_risk_premium'),
+                                                                           F.sum('executed_one_time_deposit_pet').alias('executed_one_time_deposit_pet'),
+                                                                           F.sum('executed_one_time_deposit_total').alias('executed_one_time_deposit_total'),
+                                                                           F.sum('executed_one_time_other_amenity').alias('executed_one_time_other_amenity'),
+                                                                           F.sum('executed_one_time_other_base').alias('executed_one_time_other_base'),
+                                                                           F.sum('executed_one_time_other_add_on').alias('executed_one_time_other_add_on'),
+                                                                           F.sum('executed_one_time_other_special').alias('executed_one_time_other_special'),
+                                                                           F.sum('executed_one_time_other_risk_premium').alias('executed_one_time_other_risk_premium'),
+                                                                           F.sum('executed_one_time_other_pet').alias('executed_one_time_other_pet'),
+                                                                           F.sum('executed_one_time_other_total').alias('executed_one_time_other_total')
                                                                            )
 
-joinDataFrame.show()
+
+objDataFrameApplication.saveDataFrame(joinDataFrame,'staging.staged_app_amount')
+# joinDataFrame.write \
+#     .jdbc("jdbc:postgresql://192.168.172.6:5432/entrata44_14437_sswami", "staging.staged_app_amount",
+#           properties={"user": "psDba", "password": "dba"})
+
+
+#joinDataFrame.show()

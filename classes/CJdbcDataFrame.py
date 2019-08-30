@@ -1,17 +1,32 @@
 import configparser
 
 class CJdbcDataFrame(object):
+    objSparkSession = None
     objDataFrame = None
+    source_db_config = []
+    dest_db_config = []
 
-    def __init__(self, objSparkSession, strSQL ):
+    def __init__(self, objSparkSession ):
+        self.objSparkSession = objSparkSession
+
+    def loadReadConfig(self):
         objConfigParser = configparser.ConfigParser()
         objConfigParser.read("config/db_config.ini")
-        db_prop = objConfigParser['postgresql']
-        db_url = db_prop['url']
-        username = db_prop['username']
-        password = db_prop['password']
+        return objConfigParser['SourceDb']
 
-        self.objDataFrame = objSparkSession.read.format('jdbc').options(url=db_url, dbtable=strSQL).option("user",username).option("password",password).load()
+    def loadWriteConfig(self):
+        objConfigParser = configparser.ConfigParser()
+        objConfigParser.read("config/db_config.ini")
+        return objConfigParser['DestinationDb']
 
-    def getDataFrame(self):
-        return self.objDataFrame
+    def loadDataFrame( self, strSql ):
+        db_prop = self.loadReadConfig()
+        return self.objSparkSession.read.format('jdbc').options(url=db_prop['url'], dbtable=strSql).option("user",db_prop['username']).option(
+            "password", db_prop['password']).load()
+
+    def saveDataFrame(self, objDataFrame, strDbtable ):
+        db_prop = self.loadWriteConfig()
+        objDataFrame.write.format('jdbc').options(url=db_prop['url'], dbtable=strDbtable).option("user",db_prop['username']).option(
+            "password", db_prop['password']).save()
+
+

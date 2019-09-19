@@ -33,7 +33,9 @@ Vagrant.configure("2") do |config|
   #http://10.0.2.15:18080
   #http://127.0.0.1:8888
   config.vm.network :forwarded_port, guest: 8888, host: 8888
+  config.vm.network :forwarded_port, guest: 4040, host: 4040
   config.vm.network :forwarded_port, guest: 18080, host: 18080
+  config.vm.network :forwarded_port, guest: 22, host: 2222
   #config.vm.network "forwarded_port", guest: 15672, host: 15672, host_ip: "192.168.173.216"
   #config.vm.network "forwarded_port", guest: 80, host: 80, host_ip: "192.168.173.216"
   #config.vm.network "forwarded_port", guest: 26379, host: 26379, host_ip: "192.168.173.216"
@@ -66,8 +68,12 @@ Vagrant.configure("2") do |config|
   # documentation for more information about their specific syntax and use.
 
   # Removed php stuff outside, if needed put inside.
-  # aptitude install -y php-pear whois imagemagick curl ghostscript sysstat make libavcodec-extra libmp3lame0 openssl build-essential libssl-dev libgif7 nfs-common postgresql-client-common xvfb wkhtmltopdf clamav clamav-base clamav-daemon php7.0 php7.0-gd php7.0-imap php7.0-ldap php7.0-mbstring php7.0-mcrypt php7.0-mysql php7.0-pgsql php7.0-zip php7.0-xml php7.0-curl php7.0-bcmath php7.0-tidy php-redis php7.0-soap php7.0-pdo-dblib php7.0-pdo-mysql php7.0-pdo-odbc php7.0-pdo-pgsql php7.0-pdo-sqlite php7.0-odbc php7.0-intl php-intl tdsodbc
-  # sudo update-alternatives --set php /usr/bin/php7.0
+  # aptitude install -y php-pear whois imagemagick curl ghostscript sysstat make libavcodec-extra libmp3lame0 openssl build-essential libssl-dev libgif7 nfs-common postgresql-client-common xvfb wkhtmltopdf clamav clamav-base clamav-daemon php7.0 php7.0-gd php7.0-imap php7.0-ldap php7.0-mbstring php7.0-mcrypt php7.0-mysql php7.0-pgsql php7.0-zip php7.0-xml php7.0-curl php7.0-bcmath php7.0-tidy php-redis php7.0-soap php7.0-pdo-dblib php7.0-pdo-mysql php7.0-pdo-odbc php7.0-pdo-pgsql php7.0-pdo-sqlite php7.0-odbc php7.0-intl php-intl tdsodbc php7.0-dev php7.0-pear
+  # sudo update-alternatives --set php /usr/bin/php7.0 
+  # sudo update-alternatives --set phpize /usr/bin/phpize7.0 
+  # sudo update-alternatives --set php-config.1.gz /usr/bin/php-config7.0.1.gz 
+  # sudo update-alternatives --set php-config /usr/bin/php-config7.0
+  # pecl install libsodium-2.0.10
   config.vm.provision "shell", inline: <<-SHELL
       apt-get update
     	apt-get install oracle-java8-installer
@@ -86,21 +92,21 @@ Vagrant.configure("2") do |config|
     	wget http://mirrors.estointernet.in/apache/spark/spark-2.4.4/spark-2.4.4-bin-hadoop2.7.tgz
     	tar -xf spark-2.4.4-bin-hadoop2.7.tgz
     	export PATH=$PATH:~/.local/bin
-    	mv spark-2.4.4-bin-hadoop2.7 /usr/local/spark
-    	export PATH="/usr/local/scala/bin:$PATH"
-    	export PATH="/usr/local/spark/bin:$PATH"
-    	export SPARK_HOME='/usr/local/spark'
-    	export PYTHONPATH=$SPARK_HOME/python:$PYTHONPATH
-    	export PYSPARK_DRIVER_PYTHON="jupyter"
-    	export PYSPARK_DRIVER_PYTHON_OPTS="notebook"
-    	export PYSPARK_PYTHON=python3
-    	export PATH=$SPARK_HOME:$PATH:~/.local/bin:$JAVA_HOME/bin:$JAVA_HOME/jre/bin
+    	mv spark-2.4.4-bin-hadoop2.7 /usr/local/spark    	
   SHELL
   
   config.vm.provision :shell, :inline => "sudo jupyter notebook --no-browser --ip 0.0.0.0 --allow-root &", run: "always"
   config.vm.provision :shell, :inline => "mkdir -p /tmp/spark-events & sudo /usr/local/spark/bin/spark-class org.apache.spark.deploy.history.HistoryServer &", run: "always"
+  config.vm.provision :shell, :inline => "sudo export PATH='/usr/local/scala/bin:$PATH' &", run: "always"
+  config.vm.provision :shell, :inline => "sudo export PATH='/usr/local/spark/bin:$PATH' &", run: "always"
+  config.vm.provision :shell, :inline => "sudo export SPARK_HOME='/usr/local/spark' &", run: "always"
+  config.vm.provision :shell, :inline => "sudo export PYTHONPATH=$SPARK_HOME/python:$PYTHONPATH &", run: "always"
+  config.vm.provision :shell, :inline => "sudo export PYSPARK_DRIVER_PYTHON='jupyter' &", run: "always"
+  config.vm.provision :shell, :inline => "sudo export PYSPARK_DRIVER_PYTHON_OPTS='notebook' &", run: "always"
+  config.vm.provision :shell, :inline => "sudo export PYSPARK_PYTHON=python3 &", run: "always"
+  config.vm.provision :shell, :inline => "sudo export PATH=$SPARK_HOME:$PATH:~/.local/bin:$JAVA_HOME/bin:$JAVA_HOME/jre/bin &", run: "always"
 
-  #config.vm.synced_folder "c:/svn", "/srv/www/vhosts"
+  config.vm.synced_folder "c:/svn", "/srv/www/vhosts"
   # Share an additional folder to the guest VM. The first argument is
   # the path on the host to the actual folder. The second argument is
   # the path on the guest to mount the folder. And the optional third

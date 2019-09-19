@@ -21,12 +21,14 @@ class CJdbcDataFrame(object):
 
     def loadDataFrame( self, strSql ):
         db_prop = self.loadReadConfig()
-        return self.objSparkSession.read.format('jdbc').options(url=db_prop['url'], dbtable=strSql).option("user",db_prop['username']).option(
-            "password", db_prop['password']).load()
+        return self.objSparkSession.read.format('jdbc')\
+            .options(url=db_prop['url'], dbtable=strSql)\
+            .option("user",db_prop['username'])\
+            .option("password", db_prop['password']).load()
 
     def saveDataFrame(self, objDataFrame, strDbtable ):
         db_prop = self.loadWriteConfig()
-        objDataFrame.write.format('jdbc').options(url=db_prop['url'], dbtable=strDbtable).option("user",db_prop['username']).option(
-            "password", db_prop['password']).save()
-
-
+        objDataFrame.write.format('jdbc')\
+            .options(url=db_prop['url'], dbtable=strDbtable)\
+            .option("user",db_prop['username'])\
+            .option("password", db_prop['password']).save()
